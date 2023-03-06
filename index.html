@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+	
+<head>
+	<title>Web SQL Demo</title>
+<meta name="viewport" content="user-scalable=no,width=device-width" charset="UTF-8"/>
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+	<script type="text/javascript" src="js/jquery.js"></script>
+</head>
+	
+<body style="margin:30px; background-color: #004b6f">
+	<div class="container">
+	<div class="row">
+	<form>
+		<fieldset>
+			<h4>Tên Mục</h4>
+			<input type="text" class="form-control" name="" id="item">
+			<h4>Giá Trị</h4>
+			<input type="number" class="form-control" id="quantity" name="">
+			<br>
+			<button type="button" id="insert" class="btn btn-success">Thêm</button>
+			<button type="button" id="create" class="btn btn-success">Tạo Bảng</button>
+			<button type="button" id="remove" class="btn btn-danger">Xoá Bảng</button>
+			<button type="button" id="list" class="btn btn-success">Làm Mới</button>
+		</fieldset>
+	</form>
+	<hr>
+	<h4>Các Mục</h4>
+	<table class="table table-bordered table-hover" id="itemlist"></table>
+	</div>
+	</div>
+	<script type="text/javascript">
+
+var db=openDatabase("PMiWebSql", "1.0", "Demo database web sql", 2 * 1024 * 1024); // Tên db: PMiWebSql
+
+$(function(){
+
+loadData(); //loading our records
+
+//CREATING TABLE STARTS HERE
+
+$("#create").click(function(){
+db.transaction(function(transaction){
+	var sql="CREATE TABLE items "+
+	"(id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"+
+	"item VARCHAR(100) NOT NULL,"+
+	"quantity INT(5) NOT NULL)";
+	transaction.executeSql(sql,undefined,function(){
+		alert("Bảng được tạo thành công!");
+	},function(){
+		alert("Bảng đã được tạo!");
+	})
+});
+});
+// CREATING TABLE ENDS HERE
+
+//DELETING TABLE STARTS HERE
+$("#remove").click(function(){
+
+if(!confirm("Bạn muốn xoá bảng?","")) return;;
+db.transaction(function(transaction){
+	var sql="DROP TABLE items";
+	transaction.executeSql(sql,undefined,function(){
+		alert("Đã xoá bảng!")
+	},function(transaction,err){
+		alert(err.message);
+	})
+});
+});
+//DELETING TABLE ENDS HERE
+
+//INSERTING DATA INTO TABLE
+
+$("#insert").click(function(){
+var item=$("#item").val();
+var qty=$("#quantity").val();
+db.transaction(function(transaction){
+var sql="INSERT INTO items(item,quantity) VALUES(?,?)";
+transaction.executeSql(sql,[item,qty],function(){
+	alert("Đã thêm dữ liệu!");
+},function(transaction,err){
+	alert(err.message);
+})
+})
+})
+//INSERTING DATA ENDS HERE
+
+//FETCHING OUR RECORD
+$("#list").click(function(){
+loadData();
+})
+
+//FUNCTION TO LOAD OUR RECORDS
+function loadData(){
+		$("#itemlist").children().remove();
+	db.transaction(function(transaction){
+		var sql="SELECT * FROM items ORDER BY id DESC";
+		transaction.executeSql(sql,undefined,function(transaction,result){
+if(result.rows.length){
+
+for(var i=0;i<result.rows.length;i++){
+	var row=result.rows.item(i);
+	var item=row.item;
+	var id=row.id;
+	var quantity=row.quantity;
+	$("#itemlist").append('<tr id="del'+id+'"><td>'+id+'</td><td>'+item+'</td><td id="newqty'+id+'">'+quantity+'</td><td><a href="#" class="btn btn-danger deleteitem" data-id="'+id+'">Xoá</a> <a href="#" class="btn btn-primary updateitem" data-id="'+id+'">Sửa</a></td></tr>');
+}
+}else{
+	$("#itemlist").append('<tr><td colspan="3" align="center">Chưa có dữ liệu!</td></tr>');
+}
+		},function(transaction,err){
+			alert('Không có bảng, nhấn Tạo Bảng để thêm dữu liệu!');
+		})
+	})
+
+setTimeout(function(){
+	$(".deleteitem").click(function(){
+var sure=confirm("Bạn muốn xoá mục này?");
+if(sure===true){
+	var id=$(this).data("id");
+db.transaction(function(transaction){
+var sql="DELETE FROM items where id=?";
+transaction.executeSql(sql,[id],function(){
+	$("#del"+id).fadeOut();
+	alert("Đã xoá mục!");
+},function(transaction,err){
+	alert(err.message);
+})
+});
+}
+})
+
+$(".updateitem").click(function(){
+var qty=prompt("Nhập giá trị mới để sửa lại","");
+if(qty!==null){
+	var id=$(this).data("id");
+db.transaction(function(transaction){
+var sql="UPDATE items SET quantity=? where id=?";
+transaction.executeSql(sql,[qty,id],function(){
+	$("#newqty"+id).html(qty);
+	alert("Đã cập nhật mục!");
+},function(transaction,err){
+	alert(err.message);
+})
+});
+}
+})
+
+},1000);
+
+}
+//END OF loadData() function
+});
+
+</script>
+	
+</body>
+</html>
